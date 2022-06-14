@@ -5,6 +5,21 @@
 # --output_dir $output_dir 
 # --Lflank $Lflank 
 # --nCores $nCores
+# --epsilon $epsilon
+# --tol $tol
+
+
+
+##### Testing
+# target_file = '/home/ultron/Git/JRC_sorter/example/regions.txt'
+# samples_dir = '/media/ultron/2tb_disk2/0_startallover/followup_meQTLs/cord_blood/test2/PROCESSED/'
+# bin_length = 200
+# Lflank = 100
+# res_dir = '/home/ultron/Git/JRC_sorter/example/'
+# nCores = 2
+# epsilon = 0.05
+# tol = 200
+#####
 
 
 # Read arguments
@@ -13,81 +28,129 @@ index_names = startsWith(options, '--')
 arguments = options[!index_names]
 names(arguments) = options[index_names]
 target_file = arguments['--target']
-epiread_chr_dir = arguments['--epiread_chr_dir']
+samples_dir = arguments['--samples_dir']
 bin_length = as.numeric(arguments['--bin_length'])
-N_iter = as.numeric(arguments['--N_iter'])
-seed = as.integer(arguments['--seed'])
 nCores = as.numeric(arguments['--nCores'])
 Lflank = as.numeric(arguments['--Lflank'])
+epsilon = as.numeric(arguments['--epsilon'])
+tol = as.numeric(arguments['--tol'])
 res_folder = arguments['--output_dir']
 res_dir = paste(getwd(), res_folder, sep = '/')
 
 
 setwd(res_dir)
 capture.output(
-print(paste('target_file = ', target_file, '; epiread_chr_dir = ', epiread_chr_dir, '; bin_length = ', bin_length, 
-            '; N_iter = ', N_iter, '; seed = ', seed, 
-            '; res_dir = ', res_dir, '; Lflank = ', Lflank, '; nCores = ', nCores, sep = '')), file = 'params.txt')
+print(paste('target_file = ', target_file, '; samples_dir = ', samples_dir, '; bin_length = ', bin_length, 
+            '; res_dir = ', res_dir, '; Lflank = ', Lflank, '; nCores = ', nCores, 
+            '; epsilon = ', epsilon, '; tol = ', tol, sep = '')), file = 'params.txt')
 
 # Load dependencies
 library(data.table)
 library(parallel)
 library(MASS)
 
-permute <- function(P, L)
+# Load functions
+process_file <- function(file_i, START, END, breaks)
 {
-  M = vapply(1:length(P), function(i) rbinom(n = 1, size = L[i], prob = P[i]), as.integer(1L))
-  -sum(stats::dbinom(x = M, size = L, prob = P, log = T))
+  #message(file_i)
+  command = paste("awk ", "'", "$2>=", START, " && ", "$2<", END, "' ", file_i, sep = "")
+  sub_data = fread(cmd = command, sep = "\t", header = F)
+  sub_data = data.frame(start = sub_data$V2, M = sub_data$V4 + sub_data$V11, U = sub_data$V5 + sub_data$V12)
+  sub_data$bins = cut(sub_data$start, breaks = breaks, labels = F)
+  X = Reduce(f = cbind, list(aggregate(start ~ bins, data = sub_data, FUN = mean)[,-1],
+                             aggregate(M ~ bins, data = sub_data, FUN = sum), 
+                             aggregate(U ~ bins, data = sub_data, FUN = sum)[,-1]))
+  colnames(X) = c('pos', 'bins', 'M', 'U')
+  return(X)
 }
 
-permutation_test <- function(X, breaks, N_iter)
+rowMin <- function(mat)
 {
-  zero_count = sapply(1:nrow(X), function(x) sum(as.numeric(X[x, c('V3', 'V4', 'V5', 'V6'), ]) == 0))
-  X = X[zero_count != 4,]
-  X$bins = cut(X$V2, breaks = breaks, labels = F)
-  M_fw = aggregate(V3 ~ bins, data = X, FUN = sum)$V3
-  n_fw = aggregate(V3+V4 ~ bins, data = X, FUN = sum)$`V3 + V4`
-  M_rv = aggregate(V5 ~ bins, data = X, FUN = sum)$V5
-  n_rv = aggregate(V5+V6 ~ bins, data = X, FUN = sum)$`V5 + V6`
-  p = (M_fw + M_rv)/(n_fw + n_rv)
-  l_bins = table(X$bins)
-  p_vec = unlist(sapply(1:length(l_bins), function(i) rep(p[i], l_bins[i])))
-  l_fw = X$V3+X$V4
-  l_rv = X$V5+X$V6
-  
-  # Combine Fw and Rv in a single vector
-  L = c(l_fw, l_rv)
-  P = c(p_vec, p_vec)
-  
-  # Compute logL under H0
-  logL_H0 = vapply(1:N_iter, function(i) permute(P, L), numeric(1))
-  
-  # Compute logL on data
-  #logL = permute(P, L) # NULL MODE
-  logL = -sum(stats::dbinom(x = c(X$V3, X$V5), size = L, prob = P, log = T)) # test
-  if(logL == Inf) # Fwd methylation of 1, Rv 11110. Probability 0, likelihood infinity.
-  {
-    return(NA)
-  }
-  
-  # Estimate p-values
-  pval = 1 - mean(logL > logL_H0)
-  if(pval == 0)
-  {
-    params = fitdistr(logL_H0, 'Gamma')
-    pval = pgamma(q = logL, shape = params$estimate['shape'], rate = params$estimate['rate'], lower.tail = F)
-  }
-  return(pval)
+  sapply(1:nrow(mat), function(x) which.min(mat[x,]))
 }
 
-process_region <- function(input_dir, regions_i, Chr_i, Start_i, End_i, bin_length, N_iter)
+JRC_sorter <- function(U, M, epsilon)
 {
-  #print(regions_i)
-  setwd(input_dir)
-  command <- paste("awk ", "'", "$2>=", Start_i, " && ", "$2<", End_i, "' ", Chr_i, sep = "")
-  sub_data = fread(cmd = command, sep = "\t")
-  breaks = seq(Start_i-1, End_i, bin_length)
-  permutation_test(sub_data, breaks, N_iter)
+  total = U+M
+  
+  # Model 1
+  p1 = sum(M)/sum(total)
+  L1 = sum(dbinom(x = M, size = total, prob = p1, log = T))
+  
+  # Model 2
+  D_mat = cbind((M-0)^2, (M-total)^2)
+  cluster2 = rowMin(D_mat)-1
+  indicator2 = cluster2 + (cluster2 == 0)*epsilon - (cluster2 == 1)*epsilon
+  L2 = sum(dbinom(x = M, size = total, prob = indicator2, log = T))
+  
+  # Model 3
+  D_mat = cbind((M-0.5*total)^2, (M-total)^2)
+  cluster3 = (rowMin(D_mat))/2
+  indicator3 = cluster3 + (cluster3 == 0)*epsilon - (cluster3 == 1)*epsilon
+  L3 = sum(dbinom(x = M, size = total, prob = indicator3, log = T))
+  
+  # Model 4
+  D_mat = cbind((M-0)^2, (M-0.5*total)^2)
+  cluster4 = (rowMin(D_mat)-1)/2
+  indicator4 = cluster4 + (cluster4 == 0)*epsilon - (cluster4 == 1)*epsilon
+  L4 = sum(dbinom(x = M, size = total, prob = indicator4, log = T))
+  
+  # Model 5
+  D_mat = Reduce(cbind, list((M-0)^2, (M-0.5*total)^2, (M-total)^2))
+  cluster5 = (rowMin(D_mat)-1)/2
+  #p5 = mean(cluster5)
+  indicator5 = cluster5 + (cluster5 == 0)*epsilon - (cluster5 == 1)*epsilon
+  L5 = sum(dbinom(x = M, size = total, prob = indicator5, log = T))
+  
+  L_vec = c(L1 = L1, L2 = L2, L3 = L3, L4 = L4, L5 = L5)
+  L_vec
+}
+
+test_region <- function(files, START, END, bin_length, epsilon, tol)
+{
+  breaks = seq(START-1, END, bin_length)
+  X_list = lapply(files, function(x) process_file(x, START, END, breaks))
+  
+  M = matrix(0, nrow = length(breaks), ncol = length(files))
+  U = matrix(0, nrow = length(breaks), ncol = length(files))
+  rownames(M) = rownames(U) = 1:length(breaks)
+  colnames(M) = colnames(U) = sapply(strsplit(files, split = '_'), function(x) x[1])
+  for(i in 1:length(X_list))
+  {
+    M[X_list[[i]]$bins, i] = X_list[[i]]$M
+    U[X_list[[i]]$bins, i] = X_list[[i]]$U
+  }
+  
+  # Likelihoods
+  L_mat = sapply(1:nrow(M), function(i) JRC_sorter(M[i,], U[i,], epsilon = epsilon))
+  colnames(L_mat) = 1:length(breaks)
+  L_mat = t(na.omit(t(L_mat)))
+  s_vec = rowSums(L_mat)
+  out_category = names(which(s_vec >= max(s_vec)-tol))
+  out_label = paste(out_category, collapse = '_')
+  HWE_pval = NA
+  if(out_label %in% c('L5', 'L2_L5', 'L3_L5', 'L4_L5'))
+  {
+    rows = colnames(L_mat)[names(sapply(1:ncol(L_mat), function(i) which.max(L_mat[,i]))) %in% out_category]
+    HWE_pval = test_HWE(colSums(M[rows, ]), colSums(U[rows, ]))
+  }
+  return(list(out_label = out_label, HWE_pval = HWE_pval))
+}
+
+test_HWE <- function(M, U)
+{
+  # The Pearson goodness of fit test for HWE
+  total = M+U
+  D_mat = Reduce(cbind, list((M-0)^2, (M-0.5*total)^2, (M-total)^2))
+  cluster5 = (rowMin(D_mat)-1)/2
+  cluster5 = table(factor(cluster5, levels = c('0', '0.5', '1')))
+  n = sum(cluster5)
+  freq_obs = cluster5/sum(cluster5)
+  p = unname(freq_obs['1'] + freq_obs['0.5']/2)
+  freq_exp = c(`0` = (1-p)^2, `0.5` = 2*p*(1-p), `1` = p^2)
+  print(freq_obs)
+  print(freq_exp)
+  chisq.test(x = cluster5, p = freq_exp, correct = T)$p.value
 }
 
 
@@ -99,12 +162,25 @@ pos = sapply(strsplit(regions, split = ':'), function(x) x[2])
 Start = as.integer(sapply(strsplit(pos, split = '-'), function(x) x[1])) - Lflank # Add flanks
 End = as.integer(sapply(strsplit(pos, split = '-'), function(x) x[2])) + Lflank # Add flanks
 
-# Run statistics
-RNGkind("L'Ecuyer-CMRG")
-set.seed(seed)
-pval_vec = mclapply(1:length(regions), function(i) tryCatch(process_region(epiread_chr_dir, regions[i], Chr[i], 
-                                                                  Start[i], End[i], bin_length, N_iter), error = function(x) NA), 
-                    mc.cores = nCores)
-pval_vec = unlist(pval_vec)
-names(pval_vec) = regions
-write.table(x = pval_vec, file = 'p_values.txt', quote = F, col.names = F, sep = '\t')
+# Prep names of sample files per CHR
+setwd(samples_dir)
+file.list = list.dirs(); file.list = file.list[file.list != '.']
+file.list = lapply(Chr, function(x) paste(file.list, x, sep = '/'))
+
+# Run JRC_sorter
+RES = mclapply(1:length(regions), function(i) tryCatch(test_region(file.list[[i]], Start[i], End[i], 
+                                                                        bin_length, epsilon, tol), error = function(x) NA), 
+               mc.cores = nCores)
+
+out_labels = unlist(sapply(RES, function(x) x[1]))
+names(out_labels) = regions
+pval_HWE = unlist(sapply(RES, function(x) x[2]))
+names(pval_HWE) = regions
+
+# Export results
+setwd(res_dir)
+write.table(x = data.frame(V1 = pval_HWE), file = 'p_values_HWE.txt', quote = F, col.names = F, sep = '\t')
+write.table(x = data.frame(V1 = out_labels), file = 'out_labels.txt', quote = F, col.names = F, sep = '\t')
+
+
+
