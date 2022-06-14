@@ -134,8 +134,8 @@ test_HWE <- function(M, U)
   freq_obs = cluster5/sum(cluster5)
   p = unname(freq_obs['1'] + freq_obs['0.5']/2)
   freq_exp = c(`0` = (1-p)^2, `0.5` = 2*p*(1-p), `1` = p^2)
-  print(freq_obs)
-  print(freq_exp)
+  # print(freq_obs)
+  # print(freq_exp)
   chisq.test(x = cluster5, p = freq_exp, correct = T)$p.value
 }
 
