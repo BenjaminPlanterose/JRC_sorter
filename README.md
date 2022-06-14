@@ -64,9 +64,7 @@ JRC_sorter --h
 
 ## Example
 
-Example cord blood WGBS files can be download from GEO entry [GSE140730](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE140730).
-
-These need to be uncompressed and processed (Cs in Fwd/Rv strands need to be combined into one row). A script to do so is available in /src/process_samples.sh.
+Example cord blood WGBS files can be download from GEO entry [GSE140730](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE140730). These need to be uncompressed and processed (Cs in Fwd/Rv strands need to be combined into one row). A script to do so is available in /src/process_samples.sh.
 
 
 To run the example, a test file regions.txt is given under /example/. To run:
