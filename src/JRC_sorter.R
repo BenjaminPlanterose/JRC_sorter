@@ -8,20 +8,6 @@
 # --epsilon $epsilon
 # --tol $tol
 
-
-
-##### Testing
-# target_file = '/home/ultron/Git/JRC_sorter/example/regions.txt'
-# samples_dir = '/media/ultron/2tb_disk2/0_startallover/followup_meQTLs/cord_blood/test2/PROCESSED/'
-# bin_length = 200
-# Lflank = 100
-# res_dir = '/home/ultron/Git/JRC_sorter/example/'
-# nCores = 2
-# epsilon = 0.05
-# tol = 200
-#####
-
-
 # Read arguments
 options = commandArgs(trailingOnly = TRUE)
 index_names = startsWith(options, '--')
@@ -153,8 +139,6 @@ test_HWE <- function(M, U)
   chisq.test(x = cluster5, p = freq_exp, correct = T)$p.value
 }
 
-
-
 # Read target_file
 regions = fread(input = target_file, header = F)$V1
 Chr = sapply(strsplit(regions, split = ':'), function(x) x[1])
@@ -181,6 +165,3 @@ names(pval_HWE) = regions
 setwd(res_dir)
 write.table(x = data.frame(V1 = pval_HWE), file = 'p_values_HWE.txt', quote = F, col.names = F, sep = '\t')
 write.table(x = data.frame(V1 = out_labels), file = 'out_labels.txt', quote = F, col.names = F, sep = '\t')
-
-
-
