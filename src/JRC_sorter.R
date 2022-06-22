@@ -23,7 +23,6 @@ tol = as.numeric(arguments['--tol'])
 res_folder = arguments['--output_dir']
 res_dir = paste(getwd(), res_folder, sep = '/')
 
-
 setwd(res_dir)
 capture.output(
 print(paste('target_file = ', target_file, '; samples_dir = ', samples_dir, '; bin_length = ', bin_length, 
@@ -41,13 +40,21 @@ process_file <- function(file_i, START, END, breaks)
   #message(file_i)
   command = paste("awk ", "'", "$2>=", START, " && ", "$2<", END, "' ", file_i, sep = "")
   sub_data = fread(cmd = command, sep = "\t", header = F)
-  sub_data = data.frame(start = sub_data$V2, M = sub_data$V4 + sub_data$V11, U = sub_data$V5 + sub_data$V12)
-  sub_data$bins = cut(sub_data$start, breaks = breaks, labels = F)
-  X = Reduce(f = cbind, list(aggregate(start ~ bins, data = sub_data, FUN = mean)[,-1],
-                             aggregate(M ~ bins, data = sub_data, FUN = sum), 
-                             aggregate(U ~ bins, data = sub_data, FUN = sum)[,-1]))
-  colnames(X) = c('pos', 'bins', 'M', 'U')
-  return(X)
+  
+  if(nrow(sub_data) > 1)
+  {
+    sub_data = data.frame(start = sub_data$V2, M = sub_data$V4 + sub_data$V11, U = sub_data$V5 + sub_data$V12)
+    sub_data$bins = cut(sub_data$start, breaks = breaks, labels = F)
+    X = Reduce(f = cbind, list(aggregate(start ~ bins, data = sub_data, FUN = mean)[,-1],
+                               aggregate(M ~ bins, data = sub_data, FUN = sum), 
+                               aggregate(U ~ bins, data = sub_data, FUN = sum)[,-1]))
+    colnames(X) = c('pos', 'bins', 'M', 'U')
+    return(X)
+  }
+  else
+  {
+    return(NA)
+  }
 }
 
 rowMin <- function(mat)
@@ -96,7 +103,8 @@ test_region <- function(files, START, END, bin_length, epsilon, tol)
 {
   breaks = seq(START-1, END, bin_length)
   X_list = lapply(files, function(x) process_file(x, START, END, breaks))
-  
+  remove = which(sapply(X_list, function(x) mean(is.na(x))) == 1)
+  X_list = X_list[!(1:length(X_list) %in% remove)]
   M = matrix(0, nrow = length(breaks), ncol = length(files))
   U = matrix(0, nrow = length(breaks), ncol = length(files))
   rownames(M) = rownames(U) = 1:length(breaks)
@@ -106,21 +114,31 @@ test_region <- function(files, START, END, bin_length, epsilon, tol)
     M[X_list[[i]]$bins, i] = X_list[[i]]$M
     U[X_list[[i]]$bins, i] = X_list[[i]]$U
   }
+  # Remove empty rows
+  remove = which(rowSums(M+U, na.rm = T) == 0)
+  M = M[-remove,]; U = U[-remove,]
   
   # Likelihoods
   L_mat = sapply(1:nrow(M), function(i) JRC_sorter(M[i,], U[i,], epsilon = epsilon))
-  colnames(L_mat) = 1:length(breaks)
-  L_mat = t(na.omit(t(L_mat)))
+  colnames(L_mat) = 1:ncol(L_mat)
+  #L_mat = t(na.omit(t(L_mat)))
   s_vec = rowSums(L_mat)
   out_category = names(which(s_vec >= max(s_vec)-tol))
   out_label = paste(out_category, collapse = '_')
   HWE_pval = NA
   if(out_label %in% c('L5', 'L2_L5', 'L3_L5', 'L4_L5'))
   {
-    rows = colnames(L_mat)[names(sapply(1:ncol(L_mat), function(i) which.max(L_mat[,i]))) %in% out_category]
-    HWE_pval = test_HWE(colSums(M[rows, ]), colSums(U[rows, ]))
+    rows = which(names(sapply(1:ncol(L_mat), function(i) which.max(L_mat[,i]))) %in% out_category)
+    if(length(rows) == 1) # R collapses matrices of 1 row into vectors!
+    {
+      HWE_pval = test_HWE(M[rows, ], U[rows, ])
+    }
+    else
+    {
+      HWE_pval = test_HWE(colSums(M[rows, ]), colSums(U[rows, ]))
+    }
   }
-  return(list(out_label = out_label, HWE_pval = HWE_pval))
+  return(list(out_label = out_label, likelihoods = s_vec, HWE_pval = HWE_pval))
 }
 
 test_HWE <- function(M, U)
@@ -139,6 +157,22 @@ test_HWE <- function(M, U)
   chisq.test(x = cluster5, p = freq_exp, correct = T)$p.value
 }
 
+# Predict sex
+setwd(samples_dir)
+file.list = list.dirs(); file.list = file.list[file.list != '.']
+file.list = paste(file.list, 'chrY', sep = '/')
+sizes.Y = sapply(file.list, function(x) tryCatch(file.info(x)$size, error = function(x) 0))
+file.list = list.dirs(); file.list = file.list[file.list != '.']
+file.list = paste(file.list, 'chrX', sep = '/')
+sizes.X = sapply(file.list, function(x) tryCatch(file.info(x)$size, error = function(x) 0))
+set.seed(1); kmeans_res = kmeans(x = sizes.Y/(sizes.Y + sizes.X + 1), centers = 2)$cluster
+size_tab = aggregate(formula = sizes.Y ~ factor(kmeans_res, levels = c(1,2)), FUN = mean)
+colnames(size_tab) = c('levels', 'size')
+male_label = as.character(size_tab$levels)[which.max(size_tab$size)]
+sex = kmeans_res
+sex[kmeans_res == male_label] = 'M'
+sex[kmeans_res != male_label] = 'F'
+
 # Read target_file
 regions = fread(input = target_file, header = F)$V1
 Chr = sapply(strsplit(regions, split = ':'), function(x) x[1])
@@ -151,17 +185,26 @@ setwd(samples_dir)
 file.list = list.dirs(); file.list = file.list[file.list != '.']
 file.list = lapply(Chr, function(x) paste(file.list, x, sep = '/'))
 
+# Only male samples for chrY
+chry_pos = Chr %in% c('chrY')
+if(sum(chry_pos) > 0)
+{
+  file.list[chry_pos] = lapply(file.list[chry_pos], function(x) x[sex == 'M'])
+}
+
 # Run JRC_sorter
 RES = mclapply(1:length(regions), function(i) tryCatch(test_region(file.list[[i]], Start[i], End[i], 
                                                                         bin_length, epsilon, tol), error = function(x) NA), 
                mc.cores = nCores)
-
 out_labels = unlist(sapply(RES, function(x) x[1]))
 names(out_labels) = regions
-pval_HWE = unlist(sapply(RES, function(x) x[2]))
+likelihoods = Reduce(rbind, sapply(RES, function(x) x[2]))
+rownames(likelihoods) = regions
+pval_HWE = unlist(sapply(RES, function(x) x[3]))
 names(pval_HWE) = regions
 
 # Export results
 setwd(res_dir)
 write.table(x = data.frame(V1 = pval_HWE), file = 'p_values_HWE.txt', quote = F, col.names = F, sep = '\t')
 write.table(x = data.frame(V1 = out_labels), file = 'out_labels.txt', quote = F, col.names = F, sep = '\t')
+write.table(x = likelihoods, file = 'likelihoods.txt', quote = F, col.names = T, sep = '\t')

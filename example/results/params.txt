@@ -1,1 +1,1 @@
-[1] "target_file = /home/ultron/Git/JRC_sorter/example/regions.txt; samples_dir = /media/ultron/2tb_disk2/0_startallover/followup_meQTLs/cord_blood/test2/PROCESSED/; bin_length = 200; res_dir = /home/ultron/Git/JRC_sorter/example/results; Lflank = 100; nCores = 2; epsilon = 0.05; tol = 100"
+[1] "target_file = /home/ultron/Git/JRC_sorter/example/regions.txt; samples_dir = /media/ultron/2tb_disk2/0_startallover/followup_meQTLs/cord_blood/test2/PROCESSED/; bin_length = 200; res_dir = /home/ultron/Git/JRC_sorter/src/results; Lflank = 500; nCores = 4; epsilon = 0.05; tol = 500"
