@@ -121,7 +121,6 @@ test_region <- function(files, START, END, bin_length, epsilon, tol)
   # Likelihoods
   L_mat = sapply(1:nrow(M), function(i) JRC_sorter(M[i,], U[i,], epsilon = epsilon))
   colnames(L_mat) = 1:ncol(L_mat)
-  #L_mat = t(na.omit(t(L_mat)))
   s_vec = rowSums(L_mat)
   out_category = names(which(s_vec >= max(s_vec)-tol))
   out_label = paste(out_category, collapse = '_')
@@ -152,8 +151,6 @@ test_HWE <- function(M, U)
   freq_obs = cluster5/sum(cluster5)
   p = unname(freq_obs['1'] + freq_obs['0.5']/2)
   freq_exp = c(`0` = (1-p)^2, `0.5` = 2*p*(1-p), `1` = p^2)
-  # print(freq_obs)
-  # print(freq_exp)
   chisq.test(x = cluster5, p = freq_exp, correct = T)$p.value
 }
 
