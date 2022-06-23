@@ -71,7 +71,7 @@ To run the example, a test file regions.txt is given under /example/. To run:
 
 ```bash
 cd example
-JRC_sorter -t /home/ultron/Git/JRC_sorter/example/regions.txt -i /media/ultron/2tb_disk2/0_startallover/followup_meQTLs/cord_blood/test2/PROCESSED/ -l 200 -f 500 -r 500 -e 0.05 -c 4 -o results
+JRC_sorter -t /home/ultron/Git/JRC_sorter/example/regions.txt -i /media/ultron/2tb_disk2/0_startallover/followup_meQTLs/cord_blood/test2/PROCESSED/ -l 200 -f 200 -r 0.15 -e 0.05 -c 4 -o results
 ```
 
 Please contact me at b.planterosejimenez at erasmusmc.nl for any questions or issues concerning the scripts.
