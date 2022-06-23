@@ -8,10 +8,10 @@ if [ "$1" == "-h" ] || [ "$1" == "--h" ] || [ "$1" == "--help" ] || [ "$1" == "-
   echo "   -i           An input directory that contains a folder for each sample. Each sample folder contains files split by chromosome containing M and U counts."
   echo "   -l           Bin length. Default value is 200 bp."
   echo "   -e           Value for epsilon. Default value is 0.05."
-  echo "   -r           Likelihood tolerance. Default value is 500."
+  echo "   -r           Likelihood tolerance. Default value is 0.15 (e.g. 15 % of the maximum log(L))."
   echo "   -o           output directory; default value is 'results'."
   echo "   -c           Number of cores to employ; default value is 1."
-  echo "   -f           Flank length added left and right to each region; default value is 500 bp."
+  echo "   -f           Flank length added left and right to each region; default value is 200 bp."
   echo  
   exit 0
 fi
@@ -53,7 +53,7 @@ if [ -z "$bin_length" ]; then
 fi
 
 if [ -z "$Lflank" ]; then
-  Lflank=500
+  Lflank=200
 fi
 
 if [ -z "$epsilon" ]; then
@@ -61,7 +61,7 @@ if [ -z "$epsilon" ]; then
 fi
 
 if [ -z "$tol" ]; then
-  tol=500
+  tol=0.15
 fi
 
 if [ -z "$output_dir" ]; then
