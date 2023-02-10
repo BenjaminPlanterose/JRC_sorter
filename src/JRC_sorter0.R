@@ -119,27 +119,26 @@ test_region <- function(files, START, END, bin_length, epsilon, tol)
   M = M[-remove,]; U = U[-remove,]
   
   # Likelihoods
-  # L_mat = sapply(1:nrow(M), function(i) JRC_sorter(M[i,], U[i,], epsilon = epsilon))
-  # colnames(L_mat) = 1:ncol(L_mat)
-  # s_vec = rowSums(L_mat)
-  # M_L = max(s_vec)
-  # out_category = names(which(s_vec >= M_L - tol*abs(M_L)))
-  # out_label = paste(out_category, collapse = '_')
-  # HWE_pval = NA
-  # if(out_label %in% c('L5', 'L2_L5', 'L3_L5', 'L4_L5'))
-  # {
-  #   rows = which(names(sapply(1:ncol(L_mat), function(i) which.max(L_mat[,i]))) %in% out_category)
-  #   if(length(rows) == 1) # R collapses matrices of 1 row into vectors!
-  #   {
-  #     HWE_pval = test_HWE(M[rows, ], U[rows, ])
-  #   }
-  #   else
-  #   {
-  #     HWE_pval = test_HWE(colSums(M[rows, ]), colSums(U[rows, ]))
-  #   }
-  # }
-  #return(list(out_label = out_label, likelihoods = s_vec, HWE_pval = HWE_pval, M_U = list(M = M, U = U)))
-  return(list(M = M, U = U))
+  L_mat = sapply(1:nrow(M), function(i) JRC_sorter(M[i,], U[i,], epsilon = epsilon))
+  colnames(L_mat) = 1:ncol(L_mat)
+  s_vec = rowSums(L_mat)
+  M_L = max(s_vec)
+  out_category = names(which(s_vec >= M_L - tol*abs(M_L)))
+  out_label = paste(out_category, collapse = '_')
+  HWE_pval = NA
+  if(out_label %in% c('L5', 'L2_L5', 'L3_L5', 'L4_L5'))
+  {
+    rows = which(names(sapply(1:ncol(L_mat), function(i) which.max(L_mat[,i]))) %in% out_category)
+    if(length(rows) == 1) # R collapses matrices of 1 row into vectors!
+    {
+      HWE_pval = test_HWE(M[rows, ], U[rows, ])
+    }
+    else
+    {
+      HWE_pval = test_HWE(colSums(M[rows, ]), colSums(U[rows, ]))
+    }
+  }
+  return(list(out_label = out_label, likelihoods = s_vec, HWE_pval = HWE_pval, M_U = list(M = M, U = U)))
 }
 
 test_HWE <- function(M, U)
@@ -195,22 +194,20 @@ if(sum(chry_pos) > 0)
 RES = mclapply(1:length(regions), function(i) tryCatch(test_region(file.list[[i]], Start[i], End[i], 
                                                                         bin_length, epsilon, tol), error = function(x) NA), 
                mc.cores = nCores)
+out_labels = unlist(sapply(RES, function(x) x[1]))
+names(out_labels) = regions
+likelihoods = Reduce(rbind, sapply(RES, function(x) x[2]))
+rownames(likelihoods) = regions
+pval_HWE = unlist(sapply(RES, function(x) x[3]))
+names(pval_HWE) = regions
 
-# out_labels = unlist(sapply(RES, function(x) x[1]))
-# names(out_labels) = regions
-# likelihoods = Reduce(rbind, sapply(RES, function(x) x[2]))
-# rownames(likelihoods) = regions
-# pval_HWE = unlist(sapply(RES, function(x) x[3]))
-# names(pval_HWE) = regions
-# 
-# # Export results
-# setwd(res_dir)
-# write.table(x = data.frame(V1 = pval_HWE), file = 'p_values_HWE.txt', quote = F, col.names = F, sep = '\t')
-# write.table(x = data.frame(V1 = out_labels), file = 'out_labels.txt', quote = F, col.names = F, sep = '\t')
-# write.table(x = likelihoods, file = 'likelihoods.txt', quote = F, col.names = T, sep = '\t')
+# Export results
+setwd(res_dir)
+write.table(x = data.frame(V1 = pval_HWE), file = 'p_values_HWE.txt', quote = F, col.names = F, sep = '\t')
+write.table(x = data.frame(V1 = out_labels), file = 'out_labels.txt', quote = F, col.names = F, sep = '\t')
+write.table(x = likelihoods, file = 'likelihoods.txt', quote = F, col.names = T, sep = '\t')
 
 # Export data
-# M_U = lapply(RES, function(x) x[4])
-# names(M_U) = regions
-setwd(res_dir)
-saveRDS(object = RES, file = 'M_U.Rds')
+M_U = lapply(RES, function(x) x[4])
+names(M_U) = regions
+saveRDS(object = M_U, file = 'M_U.Rds')

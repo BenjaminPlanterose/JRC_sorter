@@ -106,4 +106,4 @@ printf "Argument MY_PATH is %s\n" "$MY_PATH"
 # Run R script
 mkdir "$output_dir"
 cp $target_file $output_dir
-Rscript --vanilla $MY_PATH/JRC_sorter.R --target $target_file --samples_dir $input_dir --bin_length $bin_length --output_dir $output_dir --Lflank $Lflank --nCores $nCores --epsilon $epsilon --tol $tol
+Rscript $MY_PATH/JRC_sorter.R --target $target_file --samples_dir $input_dir --bin_length $bin_length --output_dir $output_dir --Lflank $Lflank --nCores $nCores --epsilon $epsilon --tol $tol
