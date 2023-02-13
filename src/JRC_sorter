@@ -1,23 +1,28 @@
 #!/bin/bash
 
+
+# --bin_tol $bin_tol --mod_tol $mod_tol --av_count_bin_sample $av_count_bin_sample
+
 # Manual page
 if [ "$1" == "-h" ] || [ "$1" == "--h" ] || [ "$1" == "--help" ] || [ "$1" == "-help" ]; then
-  echo "Usage: $0 -t FILE -i FILE [-l INT -e DOUBLE -r DOUBLE -o CHAR -c INT -f INT]" >&2
+  echo "Usage: $0 -t FILE -i FILE [-l INT -e DOUBLE -b DOUBLE -m DOUBLE -o CHAR -c INT -f INT -a INT]" >&2
   echo
   echo "   -t           A file containing target chromosomic locations (one per row) in the following format chr1:1234-3456."
   echo "   -i           An input directory that contains a folder for each sample. Each sample folder contains files split by chromosome containing M and U counts."
   echo "   -l           Bin length. Default value is 200 bp."
   echo "   -e           Value for epsilon. Default value is 0.05."
-  echo "   -r           Likelihood tolerance. Default value is 0.15 (e.g. 15 % of the maximum log(L))."
+  echo "   -b           Bin likelihood tolerance. Default value is 0.15 (e.g. 15 % of the maximum log(L))."
+  echo "   -m           Model likelihood tolerance. Default value is 0.1 (e.g. 10 % of the maximum log(L))."
   echo "   -o           output directory; default value is 'results'."
   echo "   -c           Number of cores to employ; default value is 1."
   echo "   -f           Flank length added left and right to each region; default value is 200 bp."
+  echo "   -a           Average count per bin and per sample below which is considered not data. Default value is 18."
   echo  
   exit 0
 fi
 
 # Parse arguments
-while getopts ":t:i:l:e:r:o:c:f:" opt; do
+while getopts ":t:i:l:e:b:m:o:c:f:a:" opt; do
   case $opt in
     t) target_file="$OPTARG"
     ;;
@@ -27,13 +32,17 @@ while getopts ":t:i:l:e:r:o:c:f:" opt; do
     ;;
     e) epsilon="$OPTARG"
     ;;
-    r) tol="$OPTARG"
+    b) bin_tol="$OPTARG"
+    ;;
+    m) mod_tol="$OPTARG"
     ;;
     o) output_dir="$OPTARG"
     ;;
     c) nCores="$OPTARG"
     ;;
     f) Lflank="$OPTARG"
+    ;;
+    a) av_count_bin_sample="$OPTARG"
     ;;
     \?) echo "Invalid option -$OPTARG" >&2
     exit 1
@@ -60,8 +69,12 @@ if [ -z "$epsilon" ]; then
   epsilon=0.05
 fi
 
-if [ -z "$tol" ]; then
+if [ -z "$bin_tol" ]; then
   tol=0.15
+fi
+
+if [ -z "$mod_tol" ]; then
+  tol=0.10
 fi
 
 if [ -z "$output_dir" ]; then
@@ -70,6 +83,10 @@ fi
 
 if [ -z "$nCores" ]; then
   nCores=1
+fi
+
+if [ -z "$av_count_bin_sample" ]; then
+  av_count_bin_sample=18
 fi
 
 
@@ -96,14 +113,22 @@ printf "Argument input_dir is %s\n" "$input_dir"
 printf "Argument target_file is %s\n" "$target_file"
 printf "Argument bin_length is %s\n" "$bin_length"
 printf "Argument Lflank is %s\n" "$Lflank"
-printf "Argument tolerance is %s\n" "$tol"
+printf "Argument bin tolerance is %s\n" "$bin_tol"
+printf "Argument model tolerance is %s\n" "$mod_tol"
 printf "Argument epsilon is %s\n" "$epsilon"
 printf "Argument output_dir is %s\n" "$output_dir"
 printf "Argument nCores is %s\n" "$nCores"
+printf "Argument av_count_bin_sample is %s\n" "$av_count_bin_sample"
 printf "Argument MY_PATH is %s\n" "$MY_PATH"
 
 
 # Run R script
 mkdir "$output_dir"
 cp $target_file $output_dir
-Rscript $MY_PATH/JRC_sorter.R --target $target_file --samples_dir $input_dir --bin_length $bin_length --output_dir $output_dir --Lflank $Lflank --nCores $nCores --epsilon $epsilon --tol $tol
+Rscript $MY_PATH/JRC_sorter.R --target $target_file --samples_dir $input_dir --bin_length $bin_length --output_dir $output_dir --Lflank $Lflank \
+--nCores $nCores --epsilon $epsilon --bin_tol $bin_tol --mod_tol $mod_tol --av_count_bin_sample $av_count_bin_sample
+
+
+
+
+
