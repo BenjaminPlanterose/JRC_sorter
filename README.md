@@ -39,8 +39,7 @@ library(MASS)
 
 Obtain manual page by running:
 ```bash
-cd <path_to_JRC_sorter>/src/
-bash jrc_sorter --h
+bash <path_to_JRC_sorter>/src/JRC_sorter --h
 # Usage: JRC_sorter -t FILE -i FILE [-l INT -e DOUBLE -b DOUBLE -m DOUBLE -o CHAR -c INT -f INT -a INT]
 #
 #   -t           A file containing target chromosomic locations (one per row) in the following format chr1:1234-3456.
