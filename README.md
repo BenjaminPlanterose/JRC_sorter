@@ -53,7 +53,7 @@ bash jrc_sorter --h
 #   -c           Number of cores to employ; default value is 1.
 #   -f           Flank length added left and right to each region; default value is 200 bp.
 #   -a           Average count per bin and per sample below which is considered not data. Default value is 18.
-```bash
+```
 
 
 ## Test run
