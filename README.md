@@ -1,26 +1,23 @@
 # JRC_sorter 
 ## A classifier for Jointly Regulated CpGs (JRCs) 
 
-#### Benjamin Planterose Jiménez<sup>1</sup>, Brontë Kolar<sup>1</sup>, Manfred Kayser<sup>1</sup>, Athina Vidaki<sup>1</sup>
-
-<sup>1</sup> Department of Genetic Identification, Erasmus MC University Medical Center Rotterdam, Rotterdam, the Netherlands.
-
+#### Benjamin Planterose Jiménez, Brontë Kolar, Manfred Kayser, Athina Vidaki
+Department of Genetic Identification, Erasmus MC University Medical Center Rotterdam, Rotterdam, the Netherlands.
 
 ## Requirements
 
     Operating system: tested on Ubuntu 18.04.6 LTS
-    R: tested on R version 4.1.2 (2021-11-01) -- "Bird Hippie"
+    R: tested on R version 4.1.2 (2021-11-01) -- "Bird Hippie" & R version 4.2.2 Patched (2022-11-10 r83330) -- "Innocent and Trusting"
 
+For issues/questions on JRC_sorter, either [report an issue](https://github.com/BenjaminPlanterose/JRC_sorter/issues) or simply contact me via b.planterosejimenez at erasmusmc.nl
 
-## Installation
+**IMPORTANT**: Test data available at [Zenodo](https://zenodo.org/record/7625657#.Y-UOORzMJu0).
 
-To begin with, make sure the right permissions are given to JRC_sorter
+## Dependencies
 
-```bash
-chmod 777 JRC_sorter
-```
+#### [R](https://cran.r-project.org/)
 
-To install R dependencies, open R by running:
+To install R, click on the hyperlink above and follow instructions. To download dependency R-packages, do as follows. Open R by running:
 ```bash
 R
 ```
@@ -38,43 +35,71 @@ library(parallel)
 library(MASS)
 ```
 
-Finally, we need to export JRC_sorter´s path to the .bashrc file. Run in linux bash:
+#### JRC_sorter
+
+Obtain manual page by running:
+```bash
+cd <path_to_JRC_sorter>/src/
+bash jrc_sorter --h
+# Usage: JRC_sorter -t FILE -i FILE [-l INT -e DOUBLE -b DOUBLE -m DOUBLE -o CHAR -c INT -f INT -a INT]
+#
+#   -t           A file containing target chromosomic locations (one per row) in the following format chr1:1234-3456.
+#   -i           An input directory that contains a folder for each sample. Each sample folder contains files split by chromosome containing M and U counts.
+#   -l           Bin length. Default value is 200 bp.
+#   -e           Value for epsilon. Default value is 0.05.
+#   -b           Bin likelihood tolerance. Default value is 0.15 (e.g. 15 % of the maximum log(L)).
+#   -m           Model likelihood tolerance. Default value is 0.1 (e.g. 10 % of the maximum log(L)).
+#   -o           output directory; default value is 'results'.
+#   -c           Number of cores to employ; default value is 1.
+#   -f           Flank length added left and right to each region; default value is 200 bp.
+#   -a           Average count per bin and per sample below which is considered not data. Default value is 18.
+```bash
+
+
+## Test run
+
+Download ```test_data``` from [Zenodo](https://zenodo.org/record/7625657#.Y-UOORzMJu0) and uncompress. This is not included in the Github repository since its size exceeds the 100 MB limit. 
+
+```test_data``` is a small part of the study of [Mordaunt et al](https://genomemedicine.biomedcentral.com/articles/10.1186/s13073-020-00785-8) (i.e. 10 samples, only chr12, chrX and chrY). The complete dataset is available under GEO accession [GSE140730](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE140730).
+
+```test_data``` includes:
+
+* ```im_regions.txt``` - List of regions on which to run JRC_sorter
+* ```PROCESSED.zip``` - Please uncompress. ```/PROCESSED/``` contains one directory per sample. Within each sub-directory, a file per chromosome is included:
+	* chr12: contains the methylated/unmethylated CpG counts (paired-end WGBS experiment) on chr12. The file contains the following fields
+		* Fwd_Chromosome
+		* Fwd_CpG_start
+		* Fwd_CpG_end
+		* Fwd_M
+		* Fwd_U
+		* Fwd_CG, confirms they are CpG sites
+		* Fwd_CpG_sequence_context
+		* Rv_Chromosome
+		* Rv_CpG_start
+		* Rv_CpG_end
+		* Rv_M
+		* Rv_U
+		* Rv_CG, confirms they are CpG sites
+		* Rv_CpG_sequence_context
+	* chrX/Y: Sex is predicted from the size of these files.
+* ```expected_output.zip``` - contains the expected output of JRC_sorter on this data (for debugging purposes).
+
+
+To launch JRC_sorter on the example, attempt:
 
 ```bash
-cd ~
-vim .bashrc
+bash <path_to_JRC_sorter>/src/JRC_sorter -t <path_to_test_run>/im_regions.txt -i <path_to_test_run>/PROCESSED -l 200 -f 200 \
+-b 0.15 -m 0.10 -e 0.05 -c 1 -a 18 -o results
 ```
 
-Press i to insert text and write at the end of the file the following line:
-```bash
-export PATH="$PATH:/absolute_route_to_JRC_sorter/"
-```
-To save changes and close VIM, press *Esc* key, write *wq* and press enter. Finally, we source the .bashrc by running:
 
-```bash
-source .bashrc
-```
+## How to run on your own data?
 
-Verify this step by executing:
+We processed standard CpG_reports (obtained with Bismark by Mordaunt *et al*) with ```/src/opt/process_samples.sh```.
 
-```bash
-# This should display the help page for binokulars
-JRC_sorter --h
-```
-
-## Example
-
-Example cord blood WGBS files can be download from GEO entry [GSE140730](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE140730). These need to be uncompressed and processed (Cs in Fwd/Rv strands need to be combined into one row and split per chromosome). A script to do so is available in /src/process_samples.sh.
+We also include some useful functions in ```/src/opt/useful_functions.R```.
 
 
-To run the example, a test file regions.txt is given under /example/. To run:
-
-```bash
-cd example
-JRC_sorter -t /home/ultron/Git/JRC_sorter/example/regions.txt -i /media/ultron/2tb_disk2/0_startallover/followup_meQTLs/cord_blood/test2/PROCESSED/ -l 200 -f 200 -r 0.15 -e 0.05 -c 4 -o results
-```
-
-Please contact me at b.planterosejimenez at erasmusmc.nl for any questions or issues concerning the scripts.
 
 ### References and Supporting Information
 B. Planterose *et al* (**2022**). Identifying jointly regulated CpGs in the human methylome. *TBD*
