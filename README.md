@@ -64,7 +64,7 @@ Download ```test_data``` from [Zenodo](https://zenodo.org/record/7636817#.Y-qHlR
 ```test_data``` includes:
 
 * ```im_regions.txt``` - List of regions on which to run JRC_sorter
-* ```PROCESSED.zip``` - Please uncompress. ```/PROCESSED/``` contains one directory per sample. Within each sub-directory, a file per chromosome is included:
+* ```PROCESSED.zip``` - Please uncompress. ```PROCESSED/``` contains one directory per sample. Within each sub-directory, a file per chromosome is included:
 	* chr12: contains the methylated/unmethylated CpG counts (paired-end WGBS experiment) on chr12. The file contains the following fields
 		* Fwd_Chromosome
 		* Fwd_CpG_start
