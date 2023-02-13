@@ -81,8 +81,8 @@ Download ```test_data``` from [Zenodo](https://zenodo.org/record/7625657#.Y-UOOR
 To launch JRC_sorter on the example, attempt:
 
 ```bash
-bash <path_to_JRC_sorter>/src/JRC_sorter -t <path_to_test_run>/im_regions.txt -i <path_to_test_run>/PROCESSED -l 200 -f 200 \
--b 0.15 -m 0.10 -e 0.05 -c 1 -a 18 -o results
+bash <path_to_JRC_sorter>/src/JRC_sorter -t <path_to_test_run>/im_regions.txt \ 
+-i <path_to_test_run>/PROCESSED -l 200 -f 200 -b 0.15 -m 0.10 -e 0.05 -c 1 -a 18 -o results
 ```
 
 
