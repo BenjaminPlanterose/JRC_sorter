@@ -11,7 +11,7 @@ Department of Genetic Identification, Erasmus MC University Medical Center Rotte
 
 For issues/questions on JRC_sorter, either [report an issue](https://github.com/BenjaminPlanterose/JRC_sorter/issues) or simply contact me via b.planterosejimenez at erasmusmc.nl
 
-**IMPORTANT**: Test data available at [Zenodo](https://zenodo.org/record/7625657#.Y-UOORzMJu0).
+**IMPORTANT**: Test data available at [Zenodo](https://zenodo.org/record/7636817#.Y-qHlRzMJu1).
 
 ## Dependencies
 
@@ -57,7 +57,7 @@ bash <path_to_JRC_sorter>/src/JRC_sorter --h
 
 ## Test run
 
-Download ```test_data``` from [Zenodo](https://zenodo.org/record/7625657#.Y-UOORzMJu0) and uncompress. This is not included in the Github repository since its size exceeds the 100 MB limit. 
+Download ```test_data``` from [Zenodo](https://zenodo.org/record/7636817#.Y-qHlRzMJu1) and uncompress. This is not included in the Github repository since its size exceeds the 100 MB limit. 
 
 ```test_data``` is a small part of the study of [Mordaunt et al](https://genomemedicine.biomedcentral.com/articles/10.1186/s13073-020-00785-8) (i.e. 10 samples, only chr12, chrX and chrY). The complete dataset is available under GEO accession [GSE140730](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE140730).
 

@@ -1,8 +1,11 @@
 #!/bin/bash
 
-# CALL: bash process_samples.sh /media/ultron/2tb_disk2/0_startallover/followup_meQTLs/cord_blood/test2/
+# BEWARE: Splitting files per chromosome is a potentially-catastrophic step (if improperly used, you may reach the maximum number of files allowed by Linux). Use at your own risk.
 
-DIR=$1
+# CALL: bash process_samples.sh <path_to_CpG_reports_uncompressed>
+
+
+DIR=$1 # Directory containing CpG_report.txt for all samples
 cd $DIR
 mkdir PROCESSED
 FILES=($( ls *.txt -1v))
@@ -14,7 +17,6 @@ do
  index="$(cut -d'.' -f1 <<< ${FILES[$i]})" 
  echo ${FILES[$i]}
  echo $index
- #paste -d " "  - - < ${FILES[$i]} | awk '($4 > 0) || ($5 > 0) || ($11 > 0) || ($12 > 0)' > ./PROCESSED/${index}_processed.txt
  awk -F'\t' '$3 == "+"' ${FILES[$i]} | awk -F'\t' '$3=$2+1' | sed 's/ /\t/g' > tmp_p.bed
  awk -F'\t' '$3 == "-"' ${FILES[$i]} | awk -F'\t' '$3=$2, $2=($2-1)'| sed 's/ /\t/g' > tmp_m.bed
  bedtools intersect -a tmp_p.bed -b tmp_m.bed -wa -wb | awk '($4 > 0) || ($5 > 0) || ($11 > 0) || ($12 > 0)' > ./PROCESSED/${index}_processed.txt
