@@ -92,7 +92,3 @@ We processed standard CpG_reports (obtained with Bismark by Mordaunt *et al*) wi
 
 We also include some useful functions in ```/src/opt/useful_functions.R```.
 
-
-
-### References and Supporting Information
-B. Planterose *et al* (**2022**). Identifying jointly regulated CpGs in the human methylome. *TBD*
