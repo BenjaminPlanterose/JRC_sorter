@@ -73,13 +73,7 @@ Download ```test_data``` from [Zenodo](https://zenodo.org/record/7625657#.Y-UOOR
 		* Fwd_U
 		* Fwd_CG, confirms they are CpG sites
 		* Fwd_CpG_sequence_context
-		* Rv_Chromosome
-		* Rv_CpG_start
-		* Rv_CpG_end
-		* Rv_M
-		* Rv_U
-		* Rv_CG, confirms they are CpG sites
-		* Rv_CpG_sequence_context
+		* All upper fields but for Rv direction
 	* chrX/Y: Sex is predicted from the size of these files.
 * ```expected_output.zip``` - contains the expected output of JRC_sorter on this data (for debugging purposes).
 
