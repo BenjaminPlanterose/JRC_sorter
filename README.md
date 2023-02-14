@@ -93,7 +93,7 @@ bash <path_to_JRC_sorter>/src/JRC_sorter -t <path_to_test_run>/im_regions.txt \
 
 ## How to run on your own data?
 
-We processed standard CpG_reports (obtained with Bismark by Mordaunt *et al*) with ```/src/opt/process_samples.sh```.
+We processed standard CpG_reports (obtained with [Bismark](https://www.bioinformatics.babraham.ac.uk/projects/bismark/) by Mordaunt *et al*) with ```/src/opt/process_samples.sh```.
 
 We also include some useful functions in ```/src/opt/useful_functions.R```.
 
